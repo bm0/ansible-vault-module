@@ -16,20 +16,28 @@ def main():
     module = AnsibleModule(argument_spec=fields)
 
     vault_token = os.getenv('VAULT_TOKEN')
-    vault_addr = os.getenv('VAULT_ADDR', module.params.get('vault_addr'))
+    vault_addr = module.params.get('vault_addr', os.getenv('VAULT_ADDR'))
 
     if not vault_token:
         raise RuntimeError('You must provide environment variable VAULT_TOKEN!')
     if not vault_addr:
-        raise RuntimeError('You must provide a address to Vault server'
-                           ' via the VAULT_ADDR environment variable or as a module parameter')
+        raise RuntimeError('You must provide an address to Vault server'
+                           ' via the VAULT_ADDR environment variable or as a module parameter!')
 
     headers = {'X-Vault-Token': vault_token}
     url = urljoin(vault_addr, module.params['path'])
     response, info = urls.fetch_url(module, url, headers=headers)
-    data = response.read()
 
-    module.exit_json(response=json.loads(data))
+    if info['status'] > 299:
+        raise RuntimeError('Error, status code: %s' % info['status'])
+
+    content = response.read()
+    data = json.loads(content)
+
+    if 'data' not in data:
+        raise RuntimeError('Key data was not found in response! Response: %s' % response)
+
+    module.exit_json(**data['data'])
 
 if __name__ == '__main__':
     main()
