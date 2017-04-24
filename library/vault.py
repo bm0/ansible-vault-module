@@ -16,7 +16,7 @@ def main():
     module = AnsibleModule(argument_spec=fields)
 
     vault_token = os.getenv('VAULT_TOKEN')
-    vault_addr = module.params.get('vault_addr', os.getenv('VAULT_ADDR'))
+    vault_addr = module.params.get('vault_addr') or os.getenv('VAULT_ADDR')
 
     if not vault_token:
         raise RuntimeError('You must provide environment variable VAULT_TOKEN!')
